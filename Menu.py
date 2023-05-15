@@ -3,12 +3,14 @@ from tkinter import ttk
 import csv
 import os
 
+##Reads data from the account file
 class infoLoader():
     def __init__(self, user, passw) -> None:
         self.username = user
         self.password = passw
         # self.logInUser()
 
+    ##validates user is real and username/password is correct
     def logInUser(self):
         with open('accounts.csv', 'r', newline='\n') as csvfile:
             reader = csv.reader(csvfile, delimiter=' ')
@@ -22,6 +24,7 @@ class infoLoader():
                         return False
             return None
             
+    ##Validates Pin is so no illegal attempts at withrawing or depositing
     def checkPin(self, user, pin):
         with open('accounts.csv', 'r', newline='\n') as csvfile:
             reader = csv.reader(csvfile, delimiter=' ')
@@ -31,7 +34,8 @@ class infoLoader():
                     if(self.user[0] == user):
                         return True
             return False
-        
+    
+    
     def checkWithdrawBalance(self, user, balance):
         with open('accounts.csv', 'r', newline='\n') as csvfile:
             reader = csv.reader(csvfile, delimiter=' ')
@@ -42,6 +46,7 @@ class infoLoader():
                         return True
             return False
         
+    
     def getTransactions(self, user):
         transactions = []
         with open('accounts.csv', 'r', newline='\n') as csvfile:
@@ -51,7 +56,8 @@ class infoLoader():
                 if(self.user[0] == user):
                     transactions.append(self.user[4])
             return transactions
-        
+    
+    ##Gets account balance
     def getBalance(self, user):
         with open('accounts.csv', 'r', newline='\n') as csvfile:
             reader = csv.reader(csvfile, delimiter=' ')
@@ -60,7 +66,8 @@ class infoLoader():
                 if(self.user[0] == user):
                     return self.user[4]
         return None
-        
+    
+    ##Gets the index of the line that we want to be changed
     def getChangedLine(self, user):
         with open('accounts.csv', 'r', newline='\n') as csvfile:
             reader = csv.reader(csvfile, delimiter=' ')
@@ -69,11 +76,13 @@ class infoLoader():
                 if(self.user[0] == user):
                     return i
 
+##writes data to account file
 class infoWriter():
     def __init__(self, user, passw) -> None:
         self.user = user
         self.passw = passw
 
+    ##Used to add a new row (User Account) to the accounts csv
     def setUpAccount(self, pin, name, balance):
         self.userInfo = [self.user, self.passw, name, pin, balance]
         file_exists = os.path.isfile("accounts.csv")
@@ -81,6 +90,7 @@ class infoWriter():
             writer = csv.writer(csvfile, delimiter=' ')
             writer.writerow(self.userInfo)
 
+    
     def writeTransaction(self, val):
         file_exists = os.path.isfile("transactions.csv")
         with open('transactions.csv', "a" if file_exists else "w", newline='\n') as csvfile:
@@ -89,6 +99,7 @@ class infoWriter():
         
         self.updateBalance(self, val=val)
 
+    ##Used for depositing a certain amount to a user's account
     def updateBalance(self, val):
         one = infoLoader(self.user, passw='n/a')
         line = one.getChangedLine(self.user);
@@ -109,6 +120,7 @@ class infoWriter():
                 else:
                     writer.writerow(row)
 
+    ##Used for withdrawing a certain amount from a user's account, cannot be negative
     def updatewithdrawBalance(self, val):
         one = infoLoader(self.user, passw='n/a')
         line = one.getChangedLine(self.user);
@@ -132,9 +144,11 @@ class infoWriter():
                 else:
                     writer.writerow(row)
 
+#Window after a user is logged in
 class LogInWindow():
     #name, pin ,user, passw
     def __init__(self, parent, user, passw, name = '99999', pin = 'N/A') -> None:
+        ##If no user account found, create a new account
         if(name != '99999'):
             newuser = infoWriter(user=user, passw=passw)
             newuser.setUpAccount(name=name, pin=pin, balance= 0)
@@ -144,16 +158,20 @@ class LogInWindow():
         print("In Login", user, passw)
         use = infoLoader(user=user, passw=passw)
         print(use.logInUser())
+
+        ##Checks if there is an account
         if(use.logInUser() == None):
             logInRoot = tk.Tk()
             logInRoot.geometry("700x100")
             self.logInForm = tk.Label(master=logInRoot, text='No User found. Please Create An Account First', font='Calibri 25 bold')
             self.logInForm.pack()
+        ##Checks if password is incorrect, but username is correct.
         elif(use.logInUser() == False):
             logInRoot = tk.Tk()
             logInRoot.geometry("700x100")
             self.logInForm = tk.Label(master=logInRoot, text='Wrong Password, Try Again.', font='Calibri 25 bold')
             self.logInForm.pack()
+        ##If logged in
         else:
             parent.destroy()
             self.username = user
@@ -173,6 +191,7 @@ class LogInWindow():
             self.ExitMenu = tk.Button(master=logInRoot, text='Exit', command= lambda: logInRoot.destroy(), width=19, font='Calibri 23')
             self.ExitMenu.pack()
 
+##Balance widget shown on the logged in page
 class BalanceWindow(tk.Frame):
     balance = 0
 
@@ -183,6 +202,7 @@ class BalanceWindow(tk.Frame):
         self.balanceForm = tk.Label(master=parent, text=str('Balance: $') + str(one.getBalance(user=user)), font='Calibri 32 bold')
         self.balanceForm.pack()
 
+##Pin window that resitricts users from depositing or withdrawing without a valid pin
 class PinWindow():
     pinNum = 0
     def __init__(self, parent, user) -> None:
@@ -206,6 +226,7 @@ class PinWindow():
         parent.destroy()
         self.pinRoot.destroy()
 
+##Deposit window
 class DepositWindow():
     amount = 0
     def __init__(self, user) -> None:
@@ -225,6 +246,7 @@ class DepositWindow():
         one.updateBalance(self.depositEntry.get())
         self.deposit.destroy()
 
+##Withdraw window
 class WithdrawWindow():
     amount = 0
     def __init__(self, parent, user) -> None:
@@ -244,6 +266,7 @@ class WithdrawWindow():
         one.updatewithdrawBalance(self.depositEntry.get())
         self.deposit.destroy()
 
+##Create an account window
 class CreateAccountWindow():
     def __init__(self, parent) -> None:
         self.fullName = tk.StringVar()
@@ -287,6 +310,7 @@ class CreateAccountWindow():
     def getUserName(self):
         return self.username
 
+##Window to login or sign up
 class MenuWindow(tk.Frame):
     def __init__(self, parent, *args, **kwargs) -> None:
         tk.Frame.__init__(self, parent, *args, **kwargs)
